@@ -1,5 +1,7 @@
 "use client";
-import LongProTiviHome from "@/components/LongProTiviHome";
+
+import LiveLandingClient from "@/components/LiveLandingClient";
+
 export default function Page() {
-  return <LongProTiviHome />;
+  return <LiveLandingClient />;
 }
