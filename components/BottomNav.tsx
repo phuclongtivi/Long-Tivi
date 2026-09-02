@@ -1,55 +1,43 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import GuestNavLink from './GuestNavLink';
-import { readTheme, writeTheme } from './event/theme';
-import './event/theme.css';
-import { PwaRegister } from './event/PwaRegister';
-import { UserAvatarFrame } from './event/UserAvatarFrame';
-import { useLanguage } from './LanguageProvider';
+import { useEffect } from "react";
+import GuestNavLink from "./GuestNavLink";
+import { readTheme, writeTheme } from "./event/theme";
+import "./event/theme.css";
+import "./core/v2-mixer-system.css";
+import { PwaRegister } from "./event/PwaRegister";
+import { UserAvatarFrame } from "./event/UserAvatarFrame";
+import { APP_PROFILE, navForProfile, type CoreNavItem } from "./core/app-profile";
 
 function ThemeBoot() {
   useEffect(() => {
     writeTheme(readTheme());
+    document.documentElement.dataset.appProfile = APP_PROFILE;
   }, []);
   return null;
 }
 
-function IconHome() {
-  return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="miter" aria-hidden="true">
-      <path d="M4.5 10.8 12 4.4l7.5 6.4V19.5H14v-5.2h-4v5.2H4.5z" />
-    </svg>
-  );
+function Icon({ kind }: { kind: CoreNavItem["kind"] }) {
+  if (kind === "home" || kind === "watch") {
+    return <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4.5 10.8 12 4.4l7.5 6.4V19.5H14v-5.2h-4v5.2H4.5z"/></svg>;
+  }
+  if (kind === "shop") {
+    return <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M7 8.2h10l-.8 11.1H7.8z"/><path d="M9.2 8.2V7.1A2.8 2.8 0 0 1 12 4.4a2.8 2.8 0 0 1 2.8 2.7v1.1"/></svg>;
+  }
+  if (kind === "mixer") {
+    return <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 4v16M12 4v16M19 4v16"/><circle cx="5" cy="9" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="19" cy="7" r="2"/></svg>;
+  }
+  if (kind === "ai") {
+    return <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3 14 8l5 2-5 2-2 5-2-5-5-2 5-2z"/><path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/></svg>;
+  }
+  if (kind === "connect") {
+    return <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3.5" y="5" width="17" height="11" rx="2"/><path d="M9 20h6M12 16v4"/></svg>;
+  }
+  if (kind === "live") {
+    return <span className="pl-v2-live-glyph">LIVE</span>;
+  }
+  return <UserAvatarFrame size={28} alt="" />;
 }
-function IconBag() {
-  return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="miter" aria-hidden="true">
-      <path d="M7 8.2h10l-.8 11.1H7.8z" />
-      <path d="M9.2 8.2V7.1A2.8 2.8 0 0 1 12 4.4 2.8 2.8 0 0 1 14.8 7.1v1.1" />
-    </svg>
-  );
-}
-function IconBell() {
-  return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="miter" aria-hidden="true">
-      <path d="M6.2 16.2h11.6l-1.1-1.3V10.4A5.1 5.1 0 0 0 12 5.4a5.1 5.1 0 0 0-5.5 5v4.5z" />
-      <path d="M10 16.2v.7a2 2 0 0 0 4 0v-.7" />
-    </svg>
-  );
-}
-
-function IconMenuFace({ src, rank }: { src?: string; rank?: string }) {
-  return <UserAvatarFrame src={src} rank={rank} size={28} alt="" />;
-}
-
-const TABS = [
-  { href: '/home', labelKey: 'home_short', Icon: IconHome },
-  { href: '/store', labelKey: 'superbuy', Icon: IconBag },
-  { href: '/', label: 'LIVE', center: true as const },
-  { href: '/notify', labelKey: 'notifications', Icon: IconBell },
-  { href: '/dashboard', labelKey: 'menu', menu: true as const },
-];
 
 export default function BottomNav({
   activeHref,
@@ -60,88 +48,47 @@ export default function BottomNav({
   profileSrc?: string;
   profileRank?: string;
 }) {
-  const { t } = useLanguage();
+  const tabs = navForProfile();
+
   return (
     <>
-    <ThemeBoot />
-    <PwaRegister />
-    <nav
-      className="pl-tabbar"
-      style={{
-        position: "fixed",
-        left: 6,
-        right: 6,
-        bottom: 0,
-        zIndex: 40,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderTopWidth: 1,
-        borderTopStyle: "solid",
-      }}
-    >
-      {TABS.map((tab) => {
-        const active =
-          activeHref === tab.href || (tab.href !== '/' && activeHref.startsWith(tab.href));
-        if ('center' in tab && tab.center) {
+      <ThemeBoot />
+      <PwaRegister />
+      <nav className="pl-tabbar pl-v2-tabbar" aria-label={`Long ${APP_PROFILE} navigation`}>
+        {tabs.map((tab) => {
+          const active =
+            activeHref === tab.href ||
+            (tab.href !== "/" && !tab.href.includes("?") && activeHref.startsWith(tab.href));
+
+          if (tab.center) {
+            return (
+              <GuestNavLink key={tab.label} href={tab.href} authMode="soft" className="pl-v2-live-link" aria-label={tab.label}>
+                <span className="pl-live-circle pl-v2-live-circle">{tab.label}</span>
+              </GuestNavLink>
+            );
+          }
+
           return (
             <GuestNavLink
-              key={tab.href}
+              key={tab.label}
               href={tab.href}
               authMode="soft"
-              aria-label={t('live_short')}
-              className="pl-live-btn"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textDecoration: "none",
-              }}
+              aria-label={tab.label}
+              title={tab.label}
+              className={active ? "pl-v2-tab-link active" : "pl-v2-tab-link"}
             >
-              <span className="pl-live-circle">{t('live_short')}</span>
+              <span className="pl-v2-tab-ico">
+                {tab.kind === "menu" ? (
+                  <UserAvatarFrame src={profileSrc} rank={profileRank} size={28} alt="" />
+                ) : (
+                  <Icon kind={tab.kind} />
+                )}
+              </span>
+              <span className="pl-v2-tab-label">{tab.label}</span>
             </GuestNavLink>
           );
-        }
-        const Ico = 'Icon' in tab ? tab.Icon : undefined;
-        const shop = tab.href === "/store";
-        const label = "labelKey" in tab ? t(tab.labelKey) : tab.label;
-        return (
-          <GuestNavLink
-            key={tab.href}
-            href={tab.href}
-            authMode="soft"
-            aria-label={label}
-            title={label}
-            className="pl-press pl-tab-link"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-              opacity: active ? 1 : 0.86,
-              textDecoration: "none",
-            }}
-          >
-            {shop ? (
-              <>
-                <span className="pl-tab-ico">{Ico ? <Ico /> : null}</span>
-                <span className="pl-tab-label">{label}</span>
-              </>
-            ) : (
-              <>
-                {"menu" in tab && tab.menu ? (
-                  <IconMenuFace src={profileSrc} rank={profileRank} />
-                ) : Ico ? (
-                  <span className="pl-tab-ico">{Ico ? <Ico /> : null}</span>
-                ) : null}
-                <span className="pl-tab-label">{label}</span>
-              </>
-            )}
-          </GuestNavLink>
-        );
-      })}
-    </nav>
+        })}
+      </nav>
     </>
   );
 }

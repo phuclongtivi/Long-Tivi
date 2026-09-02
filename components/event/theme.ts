@@ -1,18 +1,22 @@
-export type AppTheme = "dark" | "light";
+export type AppTheme = "pearl" | "aqua" | "blush" | "lavender";
 
 export const THEME_KEY = "pl-theme";
 
-/** Space Cadet — thương hiệu + hạng user */
-export const SPACE_CADET = "#1D2951";
-export const SPACE_CADET_SURFACE = "#24315C";
-export const SPACE_CADET_BORDER = "#2E3D6B";
-export const WHITE = "#FFFFFF";
+export const THEME_META: Record<AppTheme, { label: string; bg: string; accent: string }> = {
+  pearl: { label: "Pearl White", bg: "#F7F9FC", accent: "#2563EB" },
+  aqua: { label: "Aqua Mist", bg: "#EEF9F8", accent: "#0F9F93" },
+  blush: { label: "Blush Pink", bg: "#FFF2F6", accent: "#E9487A" },
+  lavender: { label: "Lavender Mist", bg: "#F4F1FF", accent: "#7C5CE0" },
+};
+
+export const THEMES: AppTheme[] = ["pearl", "aqua", "blush", "lavender"];
 
 export function readTheme(): AppTheme {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "pearl";
   const v = localStorage.getItem(THEME_KEY);
-  if (v === "dark") return "dark";
-  return "light";
+  if (v === "pearl" || v === "aqua" || v === "blush" || v === "lavender") return v;
+  // V2: bỏ dark navy. Theme cũ dark/light đều được nâng lên Pearl.
+  return "pearl";
 }
 
 export function writeTheme(t: AppTheme) {
@@ -22,27 +26,7 @@ export function writeTheme(t: AppTheme) {
   if (document.body) document.body.setAttribute("data-theme", t);
 }
 
-export const THEME = {
-  dark: {
-    bg: SPACE_CADET,
-    bgGlow: `radial-gradient(1200px 500px at 50% -10%, #2A3A72 0%, ${SPACE_CADET} 58%)`,
-    surface: "transparent",
-    text: WHITE,
-    muted: "#F4F7FB",
-    tab: "transparent",
-    border: WHITE,
-    gem: "white",
-    icon: WHITE,
-  },
-  light: {
-    bg: WHITE,
-    bgGlow: "none",
-    surface: "transparent",
-    text: SPACE_CADET,
-    muted: "#3A4A78",
-    tab: "transparent",
-    border: SPACE_CADET,
-    gem: "pink",
-    icon: SPACE_CADET,
-  },
-};
+export function nextTheme(current: AppTheme): AppTheme {
+  const i = THEMES.indexOf(current);
+  return THEMES[(i + 1) % THEMES.length];
+}

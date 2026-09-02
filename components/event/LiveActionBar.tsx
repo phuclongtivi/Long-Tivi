@@ -2,16 +2,23 @@
 
 import { memo } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { APP_PROFILE } from "@/components/core/app-profile";
 
 export type LivePane = "lobby" | "create" | "cinema" | "wallet" | "devices" | "xr";
 
-const BTN: { id: LivePane; labelKey: string; hintKey: string }[] = [
-  { id: "create", labelKey: "create_live_room", hintKey: "start_live_hint" },
-  { id: "cinema", labelKey: "enter_cinema", hintKey: "enter_cinema_hint" },
-  { id: "devices", labelKey: "connect_tv", hintKey: "qr_remote_hint" },
-  { id: "xr", labelKey: "connect_xr", hintKey: "xr_mode_hint" },
-  { id: "wallet", labelKey: "gift_wallet", hintKey: "gift_wallet_hint" },
+const ALL = [
+  { id: "create" as const, labelKey: "create_live_room", hintKey: "start_live_hint" },
+  { id: "cinema" as const, labelKey: "enter_cinema", hintKey: "enter_cinema_hint" },
+  { id: "devices" as const, labelKey: "connect_tv", hintKey: "qr_remote_hint" },
+  { id: "xr" as const, labelKey: "connect_xr", hintKey: "xr_mode_hint" },
+  { id: "wallet" as const, labelKey: "gift_wallet", hintKey: "gift_wallet_hint" },
 ];
+
+const BY_PROFILE: Record<typeof APP_PROFILE, LivePane[]> = {
+  mobile: ["create", "cinema", "wallet"],
+  pro: ["create", "cinema", "devices", "wallet"],
+  tv: ["cinema", "devices"],
+};
 
 function LiveActionBarInner({
   active,
@@ -21,18 +28,12 @@ function LiveActionBarInner({
   onPick: (p: LivePane) => void;
 }) {
   const { t } = useLanguage();
+  const allowed = BY_PROFILE[APP_PROFILE];
+  const buttons = ALL.filter((b) => allowed.includes(b.id));
+
   return (
-    <div
-      className="pl-grid-tabs pl-live-actionbar"
-      style={{
-        padding: "8px 16px",
-        background: "transparent",
-        position: "sticky",
-        top: 40,
-        zIndex: 15,
-      }}
-    >
-      {BTN.map((b) => {
+    <div className="pl-grid-tabs pl-live-actionbar pl-v2-actionbar">
+      {buttons.map((b) => {
         const on = active === b.id;
         return (
           <button
@@ -40,24 +41,10 @@ function LiveActionBarInner({
             type="button"
             onClick={() => onPick(b.id)}
             aria-pressed={on}
-            className="pl-live-top-tab"
-            style={{
-              minHeight: 44,
-              borderRadius: 14,
-              border: on ? "1px solid rgba(34,211,238,.55)" : "1px solid var(--pl-frame)",
-              background: "transparent",
-              color: "var(--pl-text)",
-              fontSize: 13,
-              fontWeight: 700,
-              letterSpacing: 0.2,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className={on ? "pl-live-top-tab pl-v2-control active" : "pl-live-top-tab pl-v2-control"}
           >
             <span>{t(b.labelKey)}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.8 }}>{t(b.hintKey)}</span>
+            <span className="pl-v2-control-hint">{t(b.hintKey)}</span>
           </button>
         );
       })}

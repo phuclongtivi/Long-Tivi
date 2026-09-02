@@ -1,31 +1,33 @@
 "use client";
 
-import { useEffect } from "react";
-import { writeTheme } from "./theme";
+import { useEffect, useState } from "react";
+import { nextTheme, readTheme, THEME_META, type AppTheme, writeTheme } from "./theme";
 
 export function ThemeToggle() {
+  const [theme, setTheme] = useState<AppTheme>("pearl");
+
   useEffect(() => {
-    writeTheme("light");
+    const current = readTheme();
+    setTheme(current);
+    writeTheme(current);
   }, []);
+
+  const meta = THEME_META[theme];
 
   return (
     <button
       type="button"
       onClick={() => {
-        writeTheme("light");
+        const next = nextTheme(theme);
+        setTheme(next);
+        writeTheme(next);
       }}
-      style={{
-        height: 32,
-        padding: "0 10px",
-        borderRadius: 999,
-        border: "1px solid var(--pl-border)",
-        background: "transparent",
-        color: "var(--pl-text)",
-        fontSize: 12,
-        fontWeight: 800,
-      }}
+      className="pl-v2-theme-toggle"
+      title={`Đổi nền · hiện tại ${meta.label}`}
+      aria-label={`Đổi nền, hiện tại ${meta.label}`}
     >
-      Chủ đề sáng
+      <span className="pl-v2-theme-dot" style={{ background: meta.accent }} />
+      <span>{meta.label}</span>
     </button>
   );
 }

@@ -1,0 +1,246 @@
+/* Long 1986 V2 — Mixer-first Design System
+   Bỏ dark navy. 4 nền sáng luôn mở khóa. */
+
+:root,
+:root[data-theme="pearl"] {
+  --pl-bg: #F7F9FC;
+  --pl-bg-2: #FFFFFF;
+  --pl-surface: rgba(255,255,255,.84);
+  --pl-surface-soft: rgba(255,255,255,.62);
+  --pl-text: #172033;
+  --pl-muted: #657087;
+  --pl-border: rgba(37,99,235,.20);
+  --pl-frame: rgba(37,99,235,.27);
+  --pl-frame-soft: rgba(37,99,235,.10);
+  --pl-focus: #2563EB;
+  --pl-cta: #2563EB;
+  --pl-cta-2: #5FA8FF;
+  --pl-gem: #2563EB;
+  --pl-icon: #172033;
+  --pl-brand: #172033;
+  --pl-v2-accent: #2563EB;
+  --pl-v2-accent-soft: rgba(37,99,235,.10);
+}
+
+:root[data-theme="aqua"] {
+  --pl-bg: #EEF9F8;
+  --pl-bg-2: #FAFFFF;
+  --pl-surface: rgba(255,255,255,.82);
+  --pl-surface-soft: rgba(236,253,250,.72);
+  --pl-text: #173431;
+  --pl-muted: #5C7774;
+  --pl-border: rgba(15,159,147,.22);
+  --pl-frame: rgba(15,159,147,.30);
+  --pl-frame-soft: rgba(15,159,147,.12);
+  --pl-focus: #0F9F93;
+  --pl-cta: #0F9F93;
+  --pl-cta-2: #4CCAC0;
+  --pl-gem: #0F9F93;
+  --pl-icon: #173431;
+  --pl-brand: #173431;
+  --pl-v2-accent: #0F9F93;
+  --pl-v2-accent-soft: rgba(15,159,147,.11);
+}
+
+:root[data-theme="blush"] {
+  --pl-bg: #FFF2F6;
+  --pl-bg-2: #FFF9FB;
+  --pl-surface: rgba(255,255,255,.84);
+  --pl-surface-soft: rgba(255,240,246,.72);
+  --pl-text: #3A2130;
+  --pl-muted: #826474;
+  --pl-border: rgba(233,72,122,.22);
+  --pl-frame: rgba(233,72,122,.30);
+  --pl-frame-soft: rgba(233,72,122,.11);
+  --pl-focus: #E9487A;
+  --pl-cta: #E9487A;
+  --pl-cta-2: #FF8FB0;
+  --pl-gem: #E9487A;
+  --pl-icon: #3A2130;
+  --pl-brand: #3A2130;
+  --pl-v2-accent: #E9487A;
+  --pl-v2-accent-soft: rgba(233,72,122,.10);
+}
+
+:root[data-theme="lavender"] {
+  --pl-bg: #F4F1FF;
+  --pl-bg-2: #FBFAFF;
+  --pl-surface: rgba(255,255,255,.84);
+  --pl-surface-soft: rgba(244,241,255,.74);
+  --pl-text: #2D2845;
+  --pl-muted: #706888;
+  --pl-border: rgba(124,92,224,.22);
+  --pl-frame: rgba(124,92,224,.30);
+  --pl-frame-soft: rgba(124,92,224,.11);
+  --pl-focus: #7C5CE0;
+  --pl-cta: #7C5CE0;
+  --pl-cta-2: #AB93F4;
+  --pl-gem: #7C5CE0;
+  --pl-icon: #2D2845;
+  --pl-brand: #2D2845;
+  --pl-v2-accent: #7C5CE0;
+  --pl-v2-accent-soft: rgba(124,92,224,.11);
+}
+
+html, body {
+  background:
+    radial-gradient(circle at 10% 0%, var(--pl-v2-accent-soft), transparent 28rem),
+    linear-gradient(180deg, var(--pl-bg-2), var(--pl-bg)) !important;
+  color: var(--pl-text) !important;
+}
+
+/* Mixer làm chuẩn: surface sáng, border kỹ thuật, radius 14-18, shadow nhẹ. */
+.pl-card,
+.pl-chip,
+.pl-live-desk-panel,
+.pl-notify-shell,
+.pl-shop article,
+.pl-future-shell article,
+.pl-panel,
+[class*="Card"],
+[class*="Panel"] {
+  border-color: var(--pl-frame) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 34px rgba(23,32,51,.06);
+}
+
+button,
+input,
+textarea,
+select,
+.pl-live-top-tab {
+  border-radius: 14px !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--pl-focus);
+  outline-offset: 2px;
+}
+
+.pl-v2-theme-toggle {
+  min-height: 34px;
+  border: 1px solid var(--pl-frame);
+  background: var(--pl-surface);
+  color: var(--pl-text);
+  border-radius: 999px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 22px rgba(23,32,51,.06);
+}
+.pl-v2-theme-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+.pl-v2-tabbar {
+  position: fixed !important;
+  left: 10px !important;
+  right: 10px !important;
+  bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  z-index: 60 !important;
+  min-height: 68px;
+  padding: 7px 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  border: 1px solid var(--pl-frame) !important;
+  border-radius: 20px !important;
+  background: rgba(255,255,255,.88) !important;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 44px rgba(23,32,51,.12);
+}
+.pl-v2-tab-link,
+.pl-v2-live-link {
+  min-width: 64px;
+  min-height: 52px;
+  color: var(--pl-muted);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 14px;
+  padding: 5px 8px;
+}
+.pl-v2-tab-link.active {
+  color: var(--pl-v2-accent);
+  background: var(--pl-v2-accent-soft);
+}
+.pl-v2-tab-ico { line-height: 0; }
+.pl-v2-tab-label { font-size: 11px; font-weight: 800; letter-spacing: .01em; }
+.pl-v2-live-circle {
+  width: 54px !important;
+  height: 54px !important;
+  border: 1px solid var(--pl-v2-accent) !important;
+  background: var(--pl-v2-accent) !important;
+  color: white !important;
+  box-shadow: 0 10px 26px var(--pl-v2-accent-soft);
+}
+.pl-v2-live-glyph { font-size: 10px; font-weight: 900; }
+
+.pl-v2-actionbar {
+  padding: 8px 12px !important;
+  gap: 8px;
+  position: sticky;
+  top: 40px;
+  z-index: 15;
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pl-v2-actionbar::-webkit-scrollbar { display: none; }
+.pl-v2-actionbar > * { width: auto !important; min-width: 128px; }
+.pl-v2-control {
+  min-height: 54px;
+  border: 1px solid var(--pl-frame) !important;
+  background: var(--pl-surface) !important;
+  color: var(--pl-text) !important;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(23,32,51,.05);
+}
+.pl-v2-control.active {
+  border-color: var(--pl-v2-accent) !important;
+  background: var(--pl-v2-accent-soft) !important;
+  color: var(--pl-v2-accent) !important;
+}
+.pl-v2-control-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 650;
+  opacity: .72;
+  text-align: left;
+}
+
+:root[data-app-profile="tv"] .pl-v2-tabbar {
+  left: 5vw !important;
+  right: 5vw !important;
+  min-height: 76px;
+}
+:root[data-app-profile="tv"] .pl-v2-tab-link,
+:root[data-app-profile="tv"] .pl-v2-live-link {
+  min-width: 140px;
+  min-height: 60px;
+}
+:root[data-app-profile="tv"] .pl-v2-tab-label { font-size: 14px; }
+
+@media (min-width: 900px) {
+  .pl-v2-tabbar {
+    left: 50% !important;
+    right: auto !important;
+    width: min(680px, calc(100vw - 32px));
+    transform: translateX(-50%);
+  }
+}
