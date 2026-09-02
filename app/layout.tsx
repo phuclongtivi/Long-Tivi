@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import '@/components/event/theme.css';
 import '@/components/core/v2-mixer-system.css';
+import '@/components/core/v2-patch3-overrides.css';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {

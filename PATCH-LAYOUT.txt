@@ -1,0 +1,1 @@
+Trong app/layout.tsx, ngay sau dòng:\nimport '@/components/core/v2-mixer-system.css';\nthêm:\nimport '@/components/core/v2-patch3-overrides.css';\n

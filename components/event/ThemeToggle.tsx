@@ -5,49 +5,40 @@ import { migrateLegacyTheme, THEME_META, THEMES, type AppTheme, writeTheme } fro
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<AppTheme>("pearl");
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setTheme(migrateLegacyTheme());
   }, []);
 
   return (
-    <div className="pl-v2-theme-picker">
-      <button
-        type="button"
-        className="pl-v2-theme-toggle"
-        aria-expanded={open}
-        aria-label="Chọn màu nền"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className="pl-v2-theme-dot" style={{ background: THEME_META[theme].accent }} />
-        <span>{THEME_META[theme].label}</span>
-      </button>
-
-      {open && (
-        <div className="pl-v2-theme-menu" role="menu" aria-label="4 màu nền Long 1986 V2">
-          {THEMES.map((item) => {
-            const meta = THEME_META[item];
-            return (
-              <button
-                key={item}
-                type="button"
-                role="menuitemradio"
-                aria-checked={theme === item}
-                className={theme === item ? "pl-v2-theme-option active" : "pl-v2-theme-option"}
-                onClick={() => {
-                  setTheme(item);
-                  writeTheme(item);
-                  setOpen(false);
-                }}
-              >
-                <span className="pl-v2-theme-swatch" style={{ background: meta.bg, borderColor: meta.accent }} />
-                <span>{meta.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <div className="pl-v2-theme-picker" role="group" aria-label="Chọn màu nền Long 1986 V2">
+      <div className="pl-v2-theme-title">Màu nền</div>
+      <div className="pl-v2-theme-buttons">
+        {THEMES.map((item) => {
+          const meta = THEME_META[item];
+          const active = theme === item;
+          return (
+            <button
+              key={item}
+              type="button"
+              aria-pressed={active}
+              title={meta.label}
+              className={active ? "pl-v2-theme-option active" : "pl-v2-theme-option"}
+              onClick={() => {
+                setTheme(item);
+                writeTheme(item);
+              }}
+            >
+              <span
+                className="pl-v2-theme-swatch"
+                style={{ background: meta.bg, borderColor: meta.accent }}
+                aria-hidden="true"
+              />
+              <span className="pl-v2-theme-option-label">{meta.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
