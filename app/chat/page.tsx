@@ -1,0 +1,2 @@
+import { redirect } from 'next/navigation';
+export default function ChatPage() { redirect('/home?inbox=open'); }

@@ -1,0 +1,68 @@
+{
+  "name": "long-protivi-desktop",
+  "version": "0.1.0",
+  "description": "Long ProTivi desktop app for Windows 10/11.",
+  "author": "Phuc Long Center",
+  "copyright": "Copyright © 2026 Phúc Long Center. Bảo lưu mọi quyền.",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win nsis portable --x64",
+    "pack:win": "electron-builder --win dir --x64"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "live.long.protivi",
+    "productName": "Long ProTivi",
+    "artifactName": "Long-ProTivi-${version}-${arch}-${os}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "homepage": "https://long.live/protivi"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "publisherName": "Phuc Long Center",
+      "legalTrademarks": "Long ProTivi, Long, long.live, Phúc Long Center, superBUY",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Long ProTivi"
+    },
+    "portable": {
+      "artifactName": "Long-ProTivi-Portable-${version}-Windows-x64.exe"
+    }
+  }
+}

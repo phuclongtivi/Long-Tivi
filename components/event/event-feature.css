@@ -1,0 +1,83 @@
+.ev-form, .ev-card, .ev-sheet {
+  font-family: Inter, system-ui, sans-serif;
+  color: #111;
+}
+.ev-form {
+  display: grid;
+  gap: 12px;
+  max-width: 640px;
+}
+.ev-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ev-form input, .ev-form textarea, .ev-form select {
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 400;
+}
+.ev-form textarea { height: 96px; padding: 10px 12px; resize: vertical; }
+.ev-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ev-publish {
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #111;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ev-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+}
+.ev-card.double {
+  min-height: 280px;
+}
+.ev-card .cover {
+  height: 160px;
+  background: #1a1a1a;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.ev-card .body { padding: 14px 16px 16px; }
+.ev-card h3 { margin: 0 0 8px; font-size: 18px; }
+.ev-meta { display: grid; gap: 4px; font-size: 13px; color: #333; }
+.ev-meta b { font-weight: 700; }
+.ev-sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  display: grid; place-items: end center;
+  z-index: 50;
+}
+.ev-sheet {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 18px 28px;
+}
+.ev-actions { display: flex; gap: 8px; margin-top: 16px; }
+.ev-actions button {
+  flex: 1; height: 44px; border-radius: 12px; border: 0;
+  font-weight: 800; cursor: pointer;
+}
+.ev-actions .primary { background: #b71c1c; color: #fff; }
+.ev-actions .ghost { background: #f2f2f2; }
+.create-event-btn {
+  height: 40px; padding: 0 16px; border-radius: 10px; border: 0;
+  font-weight: 700; font-size: 14px; background: #111; color: #fff; cursor: pointer;
+}
+.create-event-btn:disabled {
+  background: #cfcfcf; color: #777; cursor: not-allowed; opacity: .55; pointer-events: none;
+}
+.create-event-hint { margin: 6px 0 0; font-size: 12px; color: #666; max-width: 280px; line-height: 1.4; }

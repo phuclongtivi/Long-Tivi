@@ -1,0 +1,39 @@
+name: Build Long ProTivi Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      long_protivi_url:
+        description: "Long ProTivi URL"
+        required: false
+        default: "https://protivi.phuclong.xyz"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop/long-protivi
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build installer and portable
+        run: npm run build:win
+        env:
+          LONG_PROTIVI_URL: ${{ github.event.inputs.long_protivi_url }}
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Long-ProTivi-Windows
+          path: desktop/long-protivi/release/*

@@ -1,0 +1,938 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // hoặc "sqlite" tạm thời
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String     @id @default(cuid())
+  name              String?
+  email             String?    @unique
+  emailVerified     DateTime?
+  phone             String?    @unique                 // Boss đăng nhập SĐT; user có thể dùng
+  loginCount        Int        @default(0)            // Số lần đăng nhập thành công
+  biometricEnabled  Boolean    @default(false)        // Đã kích hoạt khuôn mặt/vân tay
+  biometricType     String?                           // face | fingerprint
+  twoFactorSetupComplete Boolean @default(false)      // Đã hoàn tất 2FA (OTP email) — không hỏi lại
+  profileFromOAuth  Boolean    @default(false)        // Tài khoản tạo từ đăng nhập nhanh OAuth
+
+  emailOtpHash      String?                           // OTP email tạm (hash)
+  emailOtpExpires   DateTime?
+  image             String?
+  
+  // Hạng: user | reporter (Phóng viên) | artist (Nghệ sĩ) — legacy normal/pro
+  rank              String     @default("user")
+  role              String     @default("user")   // user | admin | boss
+  trustLevel        Int        @default(0)        // 0=user, 1=reporter, 2=artist
+  shareEventsOnLogin Boolean   @default(true)     // Chia sẻ sự kiện MXH khi đăng nhập
+
+  // Thống kê livestream để tính hạng
+  attendedLives     Int        @default(0)        // Số buổi livestream đã tham dự (xem)
+  organizedLives    Int        @default(0)        // Số buổi livestream đã tổ chức
+  highViewLives     Int        @default(0)        // Số buổi tổ chức có ≥ 1000 người xem
+  
+  // Thông tin định danh (từ ảnh CCCD / giấy tờ)
+  idCardImageUrl    String?                       // URL ảnh căn cước / giấy tờ tùy thân
+  fullName          String?                       // Họ tên đầy đủ (AI điền)
+  dateOfBirth       String?                       // Ngày sinh (AI điền)
+  idNumber          String?                       // Số CCCD / CMND (AI điền)
+  address           String?                       // Địa chỉ (AI điền / cư trú)
+  shippingAddress   String?                       // Địa chỉ giao hàng đầy đủ
+  shippingLat       Float?                        // Tọa độ định vị
+  shippingLng       Float?
+  shippingPlaceId   String?                       // Google Place ID (nếu có)
+  idCardVerified    Boolean    @default(false)    // Đã được AI Admin xác minh chưa
+  
+  // Thông tin ngân hàng nhận thưởng (không bắt buộc)
+  bankAccountNumber String?                       // Số tài khoản
+  bankName          String?                       // Tên ngân hàng
+  bankAccountName   String?                       // Tên chủ tài khoản (nếu khác tên user)
+
+  // Ví tiền số Layer 1 Ethereum (địa chỉ 0x…)
+  ethWalletAddress  String?                       // Địa chỉ ví ETH L1
+  ethWalletLabel    String?                       // Nhãn tùy chọn (MetaMask, hardware…)
+
+  // Quyền tổ chức livestream + bảng điều khiển
+  // User chỉ được bật bảng điều khiển khi Admin cấp quyền (canOrganizeLive = true)
+  canOrganizeLive   Boolean    @default(false)
+
+  // Mã QR riêng (sau khi có CCCD số + họ tên) – tặng quà & hoa hồng
+  qrCodeData        String?                       // payload QR (userId + refer)
+  qrCodeImageUrl    String?                       // URL ảnh QR nếu generate sẵn
+
+  // Liên kết MXH nhanh (profile URL / username – không lưu mật khẩu)
+  socialFacebook    String?
+  socialTiktok      String?
+  socialInstagram   String?
+  socialYoutube     String?
+  socialZalo        String?
+
+  // Thông báo push trên điện thoại (false = không gửi bất kỳ thông báo livestream nào)
+  notificationsEnabled Boolean @default(true)
+
+  // Cộng dồn hạn mức chat Phúc / ngày (sau khi Boss duyệt gói)
+  aiDailyBonus      Int        @default(0)
+  
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  userAI            UserAI?
+  globalChatMessages GlobalChatMessage[]
+  liveSessions      LiveSession[]                 // Các buổi live do user tổ chức
+  attendances       LiveAttendance[]              // Các buổi live user đã tham dự
+  pushSubscriptions PushSubscription[]
+  liveNotifications LiveNotificationLog[]
+  approvalVotesCast LiveApprovalVote[] @relation("VoterVotes")
+  inventoryItems    UserInventoryItem[]
+  giftsSent         UserGiftTransfer[]  @relation("GiftFrom")
+  giftsReceived     UserGiftTransfer[]  @relation("GiftTo")
+  mixerPreset       UserMixerPreset?
+}
+
+model UserMixerPreset {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  config    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserAI {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  systemPrompt     String   @db.Text
+  isBlockedByAdmin Boolean  @default(false)
+  adminNote        String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LiveSession {
+  id            String   @id @default(cuid())
+  userId        String
+  liveInputId   String
+  title         String?
+  deviceId      String?
+  playbackUrl   String?
+  viewerCount   Int      @default(0)              // Số người xem cao nhất / tổng
+  
+  // Cài đặt từ bảng điều khiển (chỉ khi user được Admin cấp quyền)
+  isPublic      Boolean  @default(true)           // true = công khai, false = giới hạn người dùng
+  requireIdCard Boolean  @default(false)          // Điểm danh theo căn cước
+  hasReward     Boolean  @default(false)          // Có chi thưởng cho người tham gia
+  // Vé xem live: người mua chọn số tiền trong khoảng 5.000 - 20.000.000 VND
+  requiresTicket Boolean @default(false)
+  ticketPriceMin Int     @default(5000)
+  ticketPriceMax Int     @default(20000000)
+  ticketHint     String?
+
+  // Lịch phát (dùng để gửi thông báo trước 5 phút)
+  scheduledStartAt DateTime?
+  // Đánh dấu đã gửi thông báo
+  notifyBefore5Sent Boolean @default(false)
+  notifyAfter10Sent Boolean @default(false)
+
+  // Duyệt tổ chức live bằng bình chọn (hạng Nghệ sĩ)
+  // pending_vote | approved | rejected | none
+  approvalStatus      String   @default("none")
+  approvalVotesNeeded Int      @default(50)
+  approvalYesCount    Int      @default(0)
+  approvedByAdminId   String?
+  approvedAt          DateTime?
+  voteOpenedAt        DateTime?
+
+
+  startedAt     DateTime @default(now())
+  endedAt       DateTime?
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendances   LiveAttendance[]
+  gifts         LiveGift[]
+  approvalVotes LiveApprovalVote[]
+}
+
+// Tặng quà cho người tham gia livestream
+model LiveGift {
+  id            String   @id @default(cuid())
+  liveSessionId String
+  fromUserId    String?                          // Host tổ chức
+  toUserId      String?                          // null = đang treo, chưa gán người nhận
+  giftType      String                           // tiền, vật phẩm, điểm...
+  giftTitle     String?                          // Tên quà do host tuỳ chỉnh
+  amount        Float?                           // Giá trị
+  note          String?
+  status        String   @default("pending")     // pending (treo) | sent (đã tặng) | cancelled
+  createdAt     DateTime @default(now())
+  sentAt        DateTime?
+
+  liveSession   LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+}
+
+// Ghi nhận user đã tham dự (xem) một buổi livestream
+model LiveAttendance {
+  id               String    @id @default(cuid())
+  userId           String
+  liveSessionId    String
+  joinedAt         DateTime  @default(now())
+  // Vị trí chia sẻ để hiển thị trên bản đồ người tham gia
+  lat              Float?
+  lng              Float?
+  locationSharedAt DateTime?
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  liveSession   LiveSession  @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, liveSessionId])
+}
+
+// Video tóm tắt do AI Admin tạo (tối đa 5 video / chủ đề)
+// 6 chủ đề: AmNhac | PhimAnh | SanPhamMoi | DichVuMoi | TheThao | HanhChinhCong
+model ArchiveVideo {
+  id              String   @id @default(cuid())
+  theme           String                           // AmNhac | PhimAnh | SanPhamMoi | DichVuMoi | TheThao | HanhChinhCong
+  title           String
+  description     String?  @db.Text
+  videoUrl        String
+  thumbnailUrl    String?
+  sourceLiveId    String?
+  sourceLiveDate  DateTime?                        // Ngày tổ chức livestream (tab SP/DV)
+  liveStatus      String?                          // upcoming | live | ended
+  adminConfirmed  Boolean  @default(false)         // Admin đã confirm ngày giờ → hiện HOT
+  durationSec     Int?
+  // Tab Sản Phẩm mới / Dịch Vụ mới
+  hasRewardView   Boolean  @default(false)         // Xem để nhận thưởng
+  rewardNote      String?
+  // 4 tab xu hướng: AI Admin cập nhật hàng ngày, 6 tin/ngày/tab
+  isTrending      Boolean  @default(false)
+  trendingDate    DateTime?
+  createdBy       String   @default("AI Admin")
+  createdAt       DateTime @default(now())
+
+  @@index([theme, createdAt])
+  @@index([theme, trendingDate])
+}
+
+// Chatbox cho user đã tham gia 1 buổi livestream cụ thể
+model GlobalChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+model LiveChatMessage {
+  id            String   @id @default(cuid())
+  liveSessionId String
+  userId        String
+  content       String   @db.Text
+  createdAt     DateTime @default(now())
+
+  @@index([liveSessionId, createdAt])
+}
+
+// Link chia sẻ do AI Admin tạo riêng cho từng user (có mã refer tính hoa hồng)
+model ShareLink {
+  id            String   @id @default(cuid())
+  userId        String                           // Người chia sẻ
+  archiveVideoId String?                         // Video tóm tắt được chia sẻ
+  liveSessionId String?                          // Hoặc livestream gốc
+  productId     String?                          // Sản phẩm superBUY được chia sẻ
+  platform      String                           // facebook | tiktok | youtube | instagram | zalo | shopee
+  referCode     String   @unique                 // Mã refer sản phẩm (AI Admin tạo)
+  shareUrl      String                           // Link đầy đủ có refer
+  clickCount    Int      @default(0)
+  purchaseCount Int      @default(0)             // Số đơn hàng phát sinh
+  commission    Float    @default(0)             // Hoa hồng tạm tính
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([referCode])
+  @@index([productId])
+}
+
+// Tài khoản quà tặng của user (nhận quà từ host)
+model GiftWallet {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  balance       Float    @default(0)             // Tổng giá trị quà đã nhận
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
+
+// Sổ theo dõi tiền thưởng / quà / chi tiêu trong app (AI Admin cập nhật + đồng bộ từ Order/Gift)
+model WalletLedgerEntry {
+  id                String   @id @default(cuid())
+  userId            String
+  direction         String   // in | out
+  category          String   // reward | gift | commission | spend | other
+  amount            Float
+  title             String
+  note              String?  @db.Text
+  // Tiền vào: liên kết kiểm tra app ngân hàng (dùng STK user đã kê khai)
+  bankCheckable     Boolean  @default(false)
+  // Tiền ra (mua hàng có chọn PTTT): URL tra cứu giao hàng từ SP/Nghệ sĩ
+  orderId           String?
+  shippingLookupUrl String?
+  paymentMethod     String?
+  status            String   @default("recorded") // recorded | paid | shipping | done
+  source            String   @default("system")   // system | ai_admin | order | gift
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([userId, direction])
+  @@index([orderId])
+}
+
+// Lịch sử treo / tặng quà trong phiên live (host tuỳ chỉnh & tặng)
+// Note: LiveGift đã có - bổ sung trạng thái nếu cần
+
+
+// Quan hệ họ hàng / bạn bè giữa các user trên app
+// Có thể tìm user khác từ Facebook / TikTok có quan hệ với user đang cập nhật
+model UserRelation {
+  id              String   @id @default(cuid())
+  userId          String                           // User đang khai báo
+  relatedUserId   String?                          // User trên app (nếu đã có tài khoản)
+  relationType    String                           // family | friend
+  relationLabel   String?                          // VD: anh, chị, bố, mẹ, bạn thân...
+  // Thông tin tìm từ MXH khi relatedUser chưa có trên app
+  externalName    String?
+  externalPlatform String?                         // facebook | tiktok
+  externalProfileUrl String?
+  externalUserId  String?                          // ID trên FB/TikTok nếu có
+  verified        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([relatedUserId])
+}
+
+
+// Nội dung do Admin/Boss chỉnh trên bảng điều khiển (upcoming + info dưới tab)
+model AdminDisplayBlock {
+  id            String   @id @default(cuid())
+  theme         String?                          // SanPhamMoi | DichVuMoi | null = global
+  archiveVideoId String?                         // Gắn video/upcoming cụ thể
+  // 3 ô nội dung buổi livestream sắp diễn ra
+  box1Title     String?
+  box1Content   String?  @db.Text
+  box2Title     String?
+  box2Content   String?  @db.Text
+  box3Title     String?
+  box3Content   String?  @db.Text
+  // Thông tin bổ sung bên dưới các phiên sắp diễn ra
+  extraInfo     String?  @db.Text
+  // Logo công ty + ảnh sản phẩm (Admin chèn)
+  companyLogoUrl String?
+  productImageUrl String?
+  expectedAt    DateTime?                        // Ngày giờ dự kiến
+  showHotLogo   Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  updatedById   String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@index([theme, sortOrder])
+}
+
+// Boss cấp quyền admin (tối đa 200) – giống admin fanpage
+model AdminGrant {
+  id            String   @id @default(cuid())
+  userId        String   @unique                 // User được cấp admin
+  grantedById   String                           // Boss
+  permissions   String   @default("full")        // full | content | moderate ...
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([grantedById])
+}
+
+
+// Sản phẩm / dịch vụ từng livestream – gian hàng (AI Admin cập nhật giá & thông tin)
+// Gian hàng của Nghệ sĩ (tên gian = tên nghệ sĩ)
+model ArtistShop {
+  id          String   @id @default(cuid())
+  ownerId     String   @unique
+  name        String                          // Tên gian hàng = tên Nghệ sĩ
+  slug        String?  @unique
+  description String?  @db.Text
+  avatarUrl   String?
+  coverUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products StoreProduct[]
+
+  @@index([active])
+}
+
+model StoreProduct {
+  id              String   @id @default(cuid())
+  name            String
+  type            String   @default("product")   // product | service
+  description     String?  @db.Text
+  imageUrl        String?
+  imageUrls       String?  @db.Text              // JSON mảng ảnh (Amazon-style gallery)
+  bestPrice       Float?
+  originalPrice   Float?
+  latestInfo      String?  @db.Text
+  sourceLiveId    String?
+  archiveVideoId  String?
+  theme           String?
+  active          Boolean  @default(true)
+  pinnedByAdmin   Boolean  @default(false)  // Admin pin quảng cáo superBUY
+  pinOrder        Int      @default(0)
+  updatedBy       String   @default("AI Admin")
+  createdByUserId String?
+  shopId          String?                        // Thuộc gian hàng Nghệ sĩ
+  // Thông tin kiểu Amazon
+  brand           String?
+  sku             String?
+  category        String?
+  bulletPoints    String?  @db.Text              // JSON mảng điểm nổi bật
+  specifications  String?  @db.Text              // JSON thông số kỹ thuật
+  stock           Int      @default(0)
+  condition       String   @default("new")       // new | refurbished | used
+  // Xuất xứ / pháp nhân
+  manufacturerName String?                       // Tên pháp nhân sản xuất (nếu có)
+  isLegalEntityProduct Boolean @default(false)   // AI Admin đánh dấu do pháp nhân SX
+  originCertUrl   String?                        // Chứng nhận xuất xứ
+  qualityDeclUrl  String?                        // Bảng công bố chất lượng
+  originWarning   Boolean  @default(false)       // Dấu tick đỏ cảnh báo thiếu chứng nhận
+  originWarningAt DateTime?
+  originDeadline  DateTime?                      // Hạn bổ sung (3 ngày làm việc)
+  // Hoa hồng refer
+  referCommissionRate Float?   @default(0.05)
+  referCommissionFixed Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  shop ArtistShop? @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
+  @@index([type, active])
+  @@index([theme])
+  @@index([shopId])
+  @@index([pinnedByAdmin, pinOrder])
+  @@index([createdByUserId])
+}
+
+// Chương trình thưởng / ưu đãi gắn buổi livestream (ô tin SP/DV)
+model LivePromotion {
+  id              String   @id @default(cuid())
+  liveSessionId   String?
+  archiveVideoId  String?
+  theme           String?                        // SanPhamMoi | DichVuMoi
+  title           String
+  description     String?  @db.Text
+  rewardProgram   String?  @db.Text              // Chương trình thưởng
+  discountProgram String?  @db.Text              // Chương trình ưu đãi
+  startAt         DateTime?
+  endAt           DateTime?
+  active          Boolean  @default(true)
+  createdBy       String   @default("AI Admin")
+  createdAt       DateTime @default(now())
+
+  @@index([theme, active])
+}
+
+
+// Đơn hàng – gắn refer từ link/QR chia sẻ video
+model Order {
+  id              String   @id @default(cuid())
+  buyerUserId     String?                          // User mua (nếu có tài khoản)
+  buyerName       String?
+  buyerPhone      String?
+  productId       String?
+  productName     String?
+  sellerUserId    String?                          // Nghệ sĩ / chủ gian hàng
+  shopId          String?
+  amount          Float                            // Giá trị đơn
+  status          String   @default("pending_payment")
+  // pending_payment | paid | processing | shipping | delivered | completed | cancelled | return_requested
+  quantity        Int      @default(1)
+  unitPrice       Float?
+  shippingFee     Float    @default(0)
+  totalAmount     Float?
+  // Thanh toán kiểu Shopee
+  paymentMethod   String?  // cod | bank_transfer | ewallet | card
+  paymentStatus   String   @default("unpaid") // unpaid | paid | refunded
+  paidAt          DateTime?
+  // Giao hàng
+  shippingAddress String?  @db.Text
+  shippingName    String?
+  shippingPhone   String?
+  shippingStatus  String   @default("pending")
+  // pending | confirmed | packing | handed_to_carrier | in_transit | out_for_delivery | delivered | failed | returned
+  trackingCode    String?
+  carrierName     String?
+  shippingLookupUrl String?  // snapshot URL Boss cấu hình lúc tra cứu
+  shippingNote    String?  @db.Text
+  estimatedDelivery DateTime?
+  deliveredAt     DateTime?
+  // Refer tracking
+  referCode       String?                          // Mã từ ShareLink / QR
+  referrerUserId  String?                          // User giới thiệu (nếu xác định được)
+  shareLinkId     String?
+  attribution     String   @default("unknown")     // link | qr | unknown
+  // Hoa hồng
+  commissionAmount Float   @default(0)
+  commissionTo    String?                          // userId nhận hoa hồng hoặc "monthly_admin"
+  commissionStatus String  @default("pending")     // pending | approved | paid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([referCode])
+  @@index([referrerUserId])
+  @@index([commissionTo])
+  @@index([sellerUserId])
+  @@index([buyerUserId])
+  @@index([status])
+}
+
+// Boss chỉ định admin nhận hoa hồng khi không xác định được refer (theo tháng)
+model MonthlyReferAdmin {
+  id              String   @id @default(cuid())
+  yearMonth       String   @unique                 // YYYY-MM
+  adminUserId     String                           // Admin được Boss chỉ định
+  assignedById    String                           // Boss
+  note            String?
+  createdAt       DateTime @default(now())
+}
+
+// Đăng ký Web Push / FCM token trên thiết bị user
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique          // Web Push endpoint hoặc FCM token
+  p256dh    String?                   // Web Push key
+  auth      String?                   // Web Push auth
+  platform  String   @default("web")  // web | ios | android
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Log gửi thông báo livestream (tránh gửi trùng)
+model LiveNotificationLog {
+  id            String   @id @default(cuid())
+  userId        String
+  liveSessionId String
+  kind          String   // before_5m | after_10m
+  sentAt        DateTime @default(now())
+  success       Boolean  @default(true)
+  error         String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, liveSessionId, kind])
+  @@index([liveSessionId, kind])
+}
+
+
+// Bình chọn đồng ý cho Nghệ sĩ tổ chức livestream
+model LiveApprovalVote {
+  id            String   @id @default(cuid())
+  liveSessionId String
+  voterId       String
+  vote          String   @default("yes") // yes | no
+  createdAt     DateTime @default(now())
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  voter       User        @relation("VoterVotes", fields: [voterId], references: [id], onDelete: Cascade)
+
+  @@unique([liveSessionId, voterId])
+}
+
+// Kho quà / sản phẩm trong dashboard user (có thể tặng)
+model UserInventoryItem {
+  id          String   @id @default(cuid())
+  userId      String
+  itemType    String   // cash | product | voucher | other
+  title       String
+  description String?
+  amount      Float?   // cash = VND
+  quantity    Int      @default(1)
+  imageUrl    String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Lịch sử tặng quà / chuyển tiền giữa user
+model UserGiftTransfer {
+  id              String   @id @default(cuid())
+  fromUserId      String
+  toUserId        String
+  inventoryItemId String?
+  giftType        String   // cash | product | voucher | other
+  title           String?
+  amount          Float?
+  note            String?
+  status          String   @default("pending") // pending | completed | failed | cancelled
+  bankDeepLink    String?  @db.Text
+  bankPayload     String?  @db.Text
+  liveSessionId   String?
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  fromUser User @relation("GiftFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("GiftTo", fields: [toUserId], references: [id], onDelete: Cascade)
+}
+
+
+// NextAuth Prisma Adapter
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+
+// Giỏ hàng user (kiểu Shopee)
+model CartItem {
+  id          String   @id @default(cuid())
+  userId      String
+  productId   String
+  productName String?
+  imageUrl    String?
+  unitPrice   Float
+  quantity    Int      @default(1)
+  selected    Boolean  @default(true)  // tick chọn thanh toán
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// Cấu hình app do Boss/Admin (URL tra cứu giao hàng…)
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// Lịch sử trạng thái đơn (timeline Shopee-style)
+model OrderStatusLog {
+  id        String   @id @default(cuid())
+  orderId   String
+  status    String
+  note      String?
+  actorId   String?  // admin/system
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+
+// Lịch sử chatbot AI Admin (riêng từng user khi đăng nhập)
+model AssistantChat {
+  id        String   @id @default(cuid())
+  userId    String?  // null = guest session (client lưu local)
+  sessionKey String? // guest: key từ localStorage
+  role      String   // user | assistant | system
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([sessionKey, createdAt])
+}
+
+
+// Yêu cầu gia hạn hạn mức chatbot Phúc (mua gói → Boss duyệt)
+model ChatbotQuotaRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  orderId         String?
+  productSku      String   // chatbot_10 | chatbot_20 | chatbot_50
+  productName     String?
+  amount          Float
+  dailyQuotaAdd   Int      // số câu/ngày cộng thêm
+  status          String   @default("pending") // pending | approved | rejected
+  reviewedById    String?
+  reviewedAt      DateTime?
+  note            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId])
+  @@index([orderId])
+}
+
+// Đếm atomic số câu AI / ngày (chống vượt hạn khi request song song)
+model AiDailyUsage {
+  id          String   @id @default(cuid())
+  subjectKey  String   // user:xxx | guest:sessionKey
+  day         String   // YYYY-MM-DD (local server)
+  count       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@unique([subjectKey, day])
+  @@index([day])
+}
+
+// Thiết bị đã bật face/vân tay — đăng nhập tự động trên cùng máy
+model TrustedDevice {
+  id              String   @id @default(cuid())
+  userId          String
+  deviceId        String   // ID thiết bị client (localStorage)
+  deviceTokenHash String   // hash token bí mật lưu trên máy
+  biometricType   String?  // face | fingerprint
+  userAgent       String?
+  lastUsedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, deviceId])
+  @@index([deviceId])
+  @@index([deviceTokenHash])
+}
+
+// Phòng chat sự kiện (Nghệ sĩ / Phóng viên) — tab Chat
+model EventChatRoom {
+  id            String    @id @default(cuid())
+  title         String
+  liveSessionId String?
+  eventKey      String?
+  accessMode    String    @default("public")
+  creatorId     String
+  /// artist | reporter (lưu lúc tạo để sắp xếp)
+  creatorRank   String    @default("reporter")
+  eventEndedAt  DateTime?
+  /// Tự đóng = eventEndedAt + 48h (hoặc createdAt + 48h nếu chưa set ended)
+  closesAt      DateTime?
+  closed        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages EventChatMessage[]
+  mentions EventChatMention[]
+
+  @@index([closed, creatorRank, createdAt])
+  @@index([creatorId])
+  @@index([closesAt])
+  @@index([eventKey, closed, createdAt])
+}
+
+model EventChatMessage {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  room EventChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+}
+
+/// User được @tag trong phòng → phòng hiện lên đầu tab Chat của họ
+model EventChatMention {
+  id              String   @id @default(cuid())
+  roomId          String
+  mentionedUserId String
+  messageId       String?
+  createdAt       DateTime @default(now())
+
+  room EventChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, mentionedUserId, messageId])
+  @@index([mentionedUserId, createdAt])
+  @@index([roomId])
+}
+
+// Personal Agent Layer — user AI cá nhân hoá mức 2
+model PersonalAgent {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  displayName     String   @default("Long AI")
+  tone            String   @default("Tinh tế, nhanh, hỗ trợ live và mua bán")
+  avatarUrl       String?
+  theme           String   @default("diamond-sci-fi")
+  proactiveLevel  String   @default("medium")
+  permissionLevel Int      @default(2)
+  memoryPolicy    Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  memories        AgentMemory[]
+  skills          AgentSkill[]
+  permissions     AgentPermission[]
+  tasks           AgentTask[]
+  connectors      AgentConnector[]
+  actionLogs      AgentActionLog[]
+
+  @@index([userId])
+}
+
+model AgentMemory {
+  id        String   @id @default(cuid())
+  agentId   String
+  type      String
+  title     String
+  content   String   @db.Text
+  userEditable Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agent PersonalAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, type])
+}
+
+model AgentSkill {
+  id        String   @id @default(cuid())
+  agentId   String
+  key       String
+  enabled   Boolean  @default(true)
+  config    Json?
+  updatedAt DateTime @updatedAt
+
+  agent PersonalAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, key])
+}
+
+model AgentPermission {
+  id        String   @id @default(cuid())
+  agentId   String
+  scope     String
+  level     Int      @default(2)
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  agent PersonalAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, scope])
+}
+
+model AgentTask {
+  id        String   @id @default(cuid())
+  agentId   String
+  title     String
+  status    String   @default("draft")
+  payload   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agent PersonalAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, status])
+}
+
+model AgentConnector {
+  id        String   @id @default(cuid())
+  agentId   String
+  provider  String
+  status    String   @default("not_connected")
+  scopes    Json?
+  updatedAt DateTime @updatedAt
+
+  agent PersonalAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, provider])
+}
+
+model AgentActionLog {
+  id        String   @id @default(cuid())
+  agentId   String?
+  actor     String   @default("user-ai")
+  action    String
+  status    String   @default("proposed")
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  agent PersonalAgent? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([agentId, createdAt])
+  @@index([actor, createdAt])
+}
+
+// Boss AI / policy điều hành chung
+model BossAiPolicy {
+  id          String   @id @default(cuid())
+  version     Int      @default(1)
+  title       String
+  body        String   @db.Text
+  status      String   @default("draft")
+  createdById String?
+  appliedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, version])
+}
+
+// TV Display Mode / longTV QR pairing
+model TvPairingSession {
+  id          String   @id @default(cuid())
+  pairingCode String  @unique
+  qrPayload   String  @db.Text
+  phoneUserId String?
+  tvDeviceId  String?
+  status      String  @default("waiting")
+  quality     String  @default("720p")
+  lastState   Json?
+  expiresAt   DateTime
+  connectedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, expiresAt])
+}

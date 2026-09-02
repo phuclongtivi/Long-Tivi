@@ -1,0 +1,60 @@
+/* Tương thích điện thoại, máy tính bảng, laptop */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+video { object-fit: cover; }
+
+button, a, input, select, textarea {
+  max-width: 100%;
+  font-size: 16px; /* tránh iOS zoom khi focus */
+}
+
+/* Safe area iPhone / Android gesture */
+.pl-app, .pl-cinema {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Điện thoại */
+@media (max-width: 767px) {
+  .pl-cinema { flex-direction: column; }
+}
+
+/* Máy tính bảng */
+@media (min-width: 768px) and (max-width: 1199px) {
+  nav.fixed { max-width: 720px; left: 50%; transform: translateX(-50%); right: auto; width: 100%; }
+  .pl-cinema { max-width: 100%; }
+}
+
+/* Laptop */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  nav.fixed { max-width: 430px; left: 50%; transform: translateX(-50%); }
+  .pl-app { max-width: 430px; margin: 0 auto; }
+}
+
+/* Máy tính để bàn lớn */
+@media (min-width: 1440px) {
+  .pl-app { max-width: 1200px; margin: 0 auto; }
+  nav.fixed { max-width: 430px; left: 50%; transform: translateX(-50%); }
+}
+
+/* Ngang */
+@media (orientation: landscape) and (max-height: 500px) {
+  nav.fixed { padding-bottom: 4px; }
+  .pl-cinema { flex-direction: row; }
+}
+
+@supports not (padding: env(safe-area-inset-bottom)) {
+  nav.fixed { padding-bottom: 8px; }
+}
